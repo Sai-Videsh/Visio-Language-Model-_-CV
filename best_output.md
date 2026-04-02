@@ -207,3 +207,31 @@ Random demo summary
 Mean IoU (demo): 82.14%
 Mean Pixel Accuracy (demo): 94.89%
 Saved demo directory: dataset\binary_seg_demos
+
+
+
+
+
+for hyubrid approach, the output:
+
+Notes:
+- UNEXPECTED:   can be ignored when loading from different task/architecture; not ok if you expect identical arch.
+Epoch 1/5 - loss: 0.6757
+Epoch 2/5 - loss: 0.5089
+Epoch 3/5 - loss: 0.4151
+Epoch 4/5 - loss: 0.3634
+Epoch 5/5 - loss: 0.3387
+
+Final validation retrieval accuracy
+Image->Text Top-1: 18.40%
+Image->Text Top-5: 45.20%
+Text->Image Top-1: 17.20%
+
+Final test retrieval accuracy
+Image->Text Top-1: 18.00%
+Image->Text Top-5: 45.20%
+Text->Image Top-1: 14.80%
+
+Total model accuracy (mean retrieval on test): 26.00%
+Saved plot: dataset\hybrid_training_loss_curve.png
+Saved plot: dataset\hybrid_retrieval_metrics_val_test.png
