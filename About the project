@@ -1,0 +1,21 @@
+Binary segmentation U-Net style training
+Type: Single file
+Files: train_binary_segmentation.py
+
+Custom mask-aware dual-encoder retrieval model
+Type: Single file
+Files: main.py
+
+Data Generation: adding BLIP caption generation, mask-to-language generation, and hybrid answer
+
+Image-only CLIP fine-tuning for retrieval
+Type: Combination pipeline
+Files: image_only_static_vl.py, pair_cache_manager.py, generate_synthetic_captions.py
+
+Hybrid CLIP fine-tuning using BLIP + mask language text
+Type: Combination pipeline
+Files: hybrid_approach.py, generate_synthetic_captions.py, generate_mask_natural_language.py, pair_cache_manager.py, generate_hybrid_image_answers.py
+
+Multiclass mask-conditioned vision-language model
+Type: Combination pipeline
+Files: multiclass_scene_description.py, train_vision_language_from_masks.py

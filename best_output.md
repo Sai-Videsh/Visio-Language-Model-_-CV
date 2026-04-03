@@ -239,3 +239,66 @@ Demo 01 | Image_1044.png
 Hybrid answer: Natural caption: a man riding a skateboard down a street. Mask geometry: A road mask with a moderate drivable region. The drivable segment stays near the center and expands in the foreground and tapers into the distance. Road coverage is present across a moderate vertical span, wider near the bottom than in the middle. Detected mask classes: road.
 Predicted best answer: Natural caption: a man riding a skateboard down a street. Mask geometry: A road mask with a moderate drivable region. The drivable segment stays near the center and expands in the foreground and tapers into the distance. Road coverage is present across a moderate vertical span, wider near the bottom than in the middle. Detected mask classes: road.    
 Confidence: 0.4159
+
+
+(venv) PS C:\Users\CSECI\Desktop\Visual_Encoders_Street_Images> python .\train_vision_language_from_masks.py
+Loading weights: 100%|███████████████████████████████| 100/100 [00:00<00:00, 20726.94it/s]
+DistilBertModel LOAD REPORT from: distilbert-base-uncased
+Key                     | Status     |  |
+------------------------+------------+--+-
+vocab_transform.weight  | UNEXPECTED |  |
+vocab_projector.bias    | UNEXPECTED |  |
+vocab_layer_norm.bias   | UNEXPECTED |  |
+vocab_transform.bias    | UNEXPECTED |  |
+vocab_layer_norm.weight | UNEXPECTED |  |
+
+Notes:
+- UNEXPECTED:   can be ignored when loading from different task/architecture; not ok if you expect identical arch.
+Using device: cuda
+Total valid pairs: 500
+Train pairs: 450
+Val pairs: 50
+{"epoch": 1, "train_loss": 2.467947, "val_retrieval_top1": 0.14}
+Saved best checkpoint: dataset\dataset\vlm_mask_text_runs\best_vlm_mask_text.pt
+{"epoch": 2, "train_loss": 1.961708, "val_retrieval_top1": 0.14}
+{"epoch": 3, "train_loss": 1.550829, "val_retrieval_top1": 0.1}
+{"epoch": 4, "train_loss": 1.304931, "val_retrieval_top1": 0.18}
+Saved best checkpoint: dataset\dataset\vlm_mask_text_runs\best_vlm_mask_text.pt
+{"epoch": 5, "train_loss": 1.326037, "val_retrieval_top1": 0.26}
+Saved best checkpoint: dataset\dataset\vlm_mask_text_runs\best_vlm_mask_text.pt
+{"epoch": 6, "train_loss": 0.951291, "val_retrieval_top1": 0.24}
+{"epoch": 7, "train_loss": 1.060664, "val_retrieval_top1": 0.22}
+{"epoch": 8, "train_loss": 0.844861, "val_retrieval_top1": 0.2}
+Saved history: dataset\dataset\vlm_mask_text_runs\train_history.json
+Final validation retrieval top1 accuracy: 0.2000
+Demo retrieval top1 accuracy (20 images): 0.2000
+Saved demo JSONL: dataset\dataset\vlm_mask_text_runs\demo_outputs\demo_predictions_20.jsonl
+Saved demo markdown: dataset\dataset\vlm_mask_text_runs\demo_outputs\demo_predictions_20.md
+Saved final metrics: dataset\dataset\vlm_mask_text_runs\final_metrics.json
+
+query image: Image_3500.png
+predicted caption: A binary street mask with a broad drivable region. Non-road regions are balanced between road and non-road regions.
+ground truth caption: A binary street mask with a broad drivable region. Non-road regions are balanced between road and non-road regions.
+--------------------------------------------------
+query image: Image_4030.png
+predicted caption: A binary street mask with a broad drivable region. Non-road regions are balanced between road and non-road regions.
+ground truth caption: A binary street mask with a moderate drivable region. Non-road regions are dominated by sky, buildings, and structures.
+--------------------------------------------------
+query image: Image_1519.png
+predicted caption: A binary street mask with a moderate drivable region. Non-road regions are dominated by sky, buildings, and structures.
+ground truth caption: A binary street mask with a moderate drivable region. Non-road regions are dominated by sky, buildings, and structures.
+--------------------------------------------------
+query image: Image_5967.png
+predicted caption: A binary street mask with a moderate drivable region. Non-road regions are dominated by sky, buildings, and structures.
+ground truth caption: A binary street mask with a moderate drivable region. Non-road regions are dominated by sky, buildings, and structures.
+--------------------------------------------------
+query image: Image_6140.png
+predicted caption: A binary street mask with a narrow drivable region. Non-road regions are heavily congested with non-road elements.
+ground truth caption: A binary street mask with a moderate drivable region. Non-road regions are dominated by sky, buildings, and structures.
+--------------------------------------------------
+query image: Image_6405.png
+predicted caption: A binary street mask with a moderate drivable region. Non-road regions are dominated by sky, buildings, and structures.
+ground truth caption: A binary street mask with a moderate drivable region. Non-road regions are dominated by sky, buildings, and structures.
+
+
+total accuracy: 88.0%

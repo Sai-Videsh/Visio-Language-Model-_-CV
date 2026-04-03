@@ -43,13 +43,16 @@ DEFAULT_CLASS_MAP: Dict[int, str] = {
 DEFAULT_IMAGE_DIR = Path("archive/IDD_RESIZED/image_archive")
 DEFAULT_MASK_DIR = Path("archive/IDD_RESIZED/mask_archive")
 DEFAULT_PAIRS_OUT = Path("dataset/mask_caption_pairs.jsonl")
+DEFAULT_MASK_LANGUAGE_JSONL = Path("dataset/mask_natural_language.jsonl")
 
-DEFAULT_MAX_SAMPLES = 2500
-DEFAULT_EPOCHS = 8
-DEFAULT_BATCH_SIZE = 16
+DEFAULT_MAX_SAMPLES = 3000
+DEFAULT_EPOCHS = 10
+DEFAULT_BATCH_SIZE = 8
 DEFAULT_LEARNING_RATE = 1e-3
-DEFAULT_VAL_RATIO = 0.2
-DEFAULT_DEMO_SAMPLES = 8
+DEFAULT_TRAIN_RATIO = 0.8
+DEFAULT_VAL_RATIO = 0.1
+DEFAULT_TEST_RATIO = 0.1
+DEFAULT_DEMO_SAMPLES = 50
 DEFAULT_SEED = 42
 
 
@@ -83,6 +86,26 @@ def find_pairs(image_dir: Path, mask_dir: Path) -> List[Tuple[Path, Path, int]]:
 
     paired_idx = sorted(set(images.keys()) & set(masks.keys()))
     return [(images[i], masks[i], i) for i in paired_idx]
+
+
+def load_mask_language_captions(jsonl_path: Path) -> Dict[int, str]:
+    """Load pre-generated geometric captions from mask_natural_language.jsonl"""
+    captions = {}
+    if not jsonl_path.exists():
+        return captions
+    
+    try:
+        with jsonl_path.open("r", encoding="utf-8") as f:
+            for line in f:
+                row = json.loads(line)
+                img_id = row.get("id")
+                caption = row.get("primary_caption")
+                if img_id is not None and caption:
+                    captions[img_id] = caption
+    except Exception as e:
+        print(f"Warning: Could not load mask_language captions from {jsonl_path}: {e}")
+    
+    return captions
 
 
 def extract_objects_from_mask(mask_path: Path, class_map: Dict[int, str]) -> List[Tuple[str, float]]:
@@ -158,7 +181,11 @@ def build_pairs(
     class_map: Dict[int, str],
     max_samples: int,
     seed: int,
+    mask_language_captions: Dict[int, str] | None = None,
 ) -> List[Dict[str, object]]:
+    if mask_language_captions is None:
+        mask_language_captions = {}
+        
     pairs = find_pairs(image_dir, mask_dir)
     if not pairs:
         return []
@@ -168,15 +195,19 @@ def build_pairs(
 
     records: List[Dict[str, object]] = []
     for image_path, mask_path, idx in pairs:
-        objects = extract_objects_from_mask(mask_path, class_map)
-        caption = generate_caption(objects)
+        # Prefer geometric captions from mask_natural_language.jsonl
+        if idx in mask_language_captions:
+            caption = mask_language_captions[idx]
+        else:
+            # Fallback to generated caption for multiclass masks
+            objects = extract_objects_from_mask(mask_path, class_map)
+            caption = generate_caption(objects)
+        
         records.append(
             {
                 "id": idx,
                 "image_path": str(image_path),
                 "mask_path": str(mask_path),
-                "objects": [name for name, _ in objects],
-                "object_ratios": {name: round(ratio, 4) for name, ratio in objects},
                 "caption": caption,
             }
         )
@@ -453,20 +484,31 @@ def train(
 def split_records(
     records: List[Dict[str, object]],
     val_ratio: float,
+    test_ratio: float,
     seed: int,
-) -> Tuple[List[Dict[str, object]], List[Dict[str, object]]]:
-    if len(records) < 2:
-        return records, records
-
+) -> Tuple[List[Dict[str, object]], List[Dict[str, object]], List[Dict[str, object]]]:
+    """Split records into train, test, val sets.
+    
+    Returns: (train_records, test_records, val_records)
+    """
     items = records[:]
     random.Random(seed).shuffle(items)
-    val_size = max(1, int(len(items) * val_ratio))
-    train_size = max(1, len(items) - val_size)
-    train_records = items[:train_size]
-    val_records = items[train_size:]
+    if len(items) < 3:
+        return items, items, items
+
+    val_n = max(1, int(len(items) * val_ratio))
+    test_n = max(1, int(len(items) * test_ratio))
+    train_n = max(1, len(items) - val_n - test_n)
+
+    train_records = items[:train_n]
+    test_records = items[train_n : train_n + test_n]
+    val_records = items[train_n + test_n : train_n + test_n + val_n]
+
+    if not test_records:
+        test_records = train_records[:]
     if not val_records:
         val_records = train_records[:]
-    return train_records, val_records
+    return train_records, test_records, val_records
 
 
 def retrieval_demo(
@@ -511,6 +553,7 @@ def parse_args() -> argparse.Namespace:
     p.add_argument("--batch-size", type=int, default=DEFAULT_BATCH_SIZE)
     p.add_argument("--lr", type=float, default=DEFAULT_LEARNING_RATE)
     p.add_argument("--val-ratio", type=float, default=DEFAULT_VAL_RATIO)
+    p.add_argument("--test-ratio", type=float, default=DEFAULT_TEST_RATIO)
     p.add_argument("--demo-samples", type=int, default=DEFAULT_DEMO_SAMPLES)
     p.add_argument("--seed", type=int, default=DEFAULT_SEED)
     return p.parse_args()
@@ -523,13 +566,18 @@ def main() -> None:
     if not args.image_dir.exists() or not args.mask_dir.exists():
         raise FileNotFoundError("image-dir or mask-dir does not exist")
 
-    print("Building image-text pairs from masks...")
+    print("Loading geometric captions from mask_natural_language.jsonl...")
+    mask_language_captions = load_mask_language_captions(DEFAULT_MASK_LANGUAGE_JSONL)
+    print(f"Loaded {len(mask_language_captions)} mask-generated captions")
+
+    print("\nBuilding image-text pairs from masks...")
     records = build_pairs(
         image_dir=args.image_dir,
         mask_dir=args.mask_dir,
         class_map=DEFAULT_CLASS_MAP,
         max_samples=args.max_samples,
         seed=args.seed,
+        mask_language_captions=mask_language_captions,
     )
 
     if not records:
@@ -537,20 +585,27 @@ def main() -> None:
 
     save_jsonl(args.pairs_out, records)
     print(f"Saved {len(records)} pairs to {args.pairs_out}")
-    print("\nGenerated captions from masks:")
-    for i, row in enumerate(records, start=1):
+    print("\nSample captions from pairs (first 10):")
+    for i, row in enumerate(records[:10], start=1):
         image_name = Path(str(row["image_path"])).name
-        print(f"{i:05d}. {image_name} -> {row['caption']}")
+        print(f"{i:05d}. {image_name} -> {row['caption'][:60]}...")
 
-    train_records, val_records = split_records(records, val_ratio=args.val_ratio, seed=args.seed)
-    print(f"Train pairs: {len(train_records)} | Validation pairs: {len(val_records)}")
+    train_records, test_records, val_records = split_records(
+        records, val_ratio=args.val_ratio, test_ratio=args.test_ratio, seed=args.seed
+    )
+    print(f"\nData split (80:10:10):")
+    print(f"  Train pairs: {len(train_records)}")
+    print(f"  Test pairs:  {len(test_records)}")
+    print(f"  Val pairs:   {len(val_records)}")
 
     captions = [str(r["caption"]) for r in train_records]
     tokenizer = SimpleTokenizer(captions)
 
     train_dataset = MaskCaptionDataset(train_records, tokenizer, DEFAULT_CLASS_MAP)
+    test_dataset = MaskCaptionDataset(test_records, tokenizer, DEFAULT_CLASS_MAP)
     val_dataset = MaskCaptionDataset(val_records, tokenizer, DEFAULT_CLASS_MAP)
     train_loader = DataLoader(train_dataset, batch_size=args.batch_size, shuffle=True)
+    test_loader = DataLoader(test_dataset, batch_size=args.batch_size, shuffle=False)
     val_loader = DataLoader(val_dataset, batch_size=args.batch_size, shuffle=False)
 
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
@@ -565,11 +620,20 @@ def main() -> None:
     train_cfg = TrainConfig(epochs=args.epochs, batch_size=args.batch_size, lr=args.lr)
     train(model, train_loader, val_loader, train_cfg, device)
 
-    final_top1, final_top5, final_text_top1 = compute_retrieval_metrics(model, val_loader, device)
-    print("\nFinal validation accuracy")
-    print(f"Image->Text Top-1: {final_top1 * 100:.2f}%")
-    print(f"Image->Text Top-5: {final_top5 * 100:.2f}%")
-    print(f"Text->Image Top-1: {final_text_top1 * 100:.2f}%")
+    val_top1, val_top5, val_text_top1 = compute_retrieval_metrics(model, val_loader, device)
+    print("\nValidation accuracy")
+    print(f"  Image->Text Top-1: {val_top1 * 100:.2f}%")
+    print(f"  Image->Text Top-5: {val_top5 * 100:.2f}%")
+    print(f"  Text->Image Top-1: {val_text_top1 * 100:.2f}%")
+
+    test_top1, test_top5, test_text_top1 = compute_retrieval_metrics(model, test_loader, device)
+    print("\nTest accuracy")
+    print(f"  Image->Text Top-1: {test_top1 * 100:.2f}%")
+    print(f"  Image->Text Top-5: {test_top5 * 100:.2f}%")
+    print(f"  Text->Image Top-1: {test_text_top1 * 100:.2f}%")
+
+    final_accuracy = (test_top1 + test_top5 + test_text_top1) / 3.0
+    print(f"\nFinal Model Accuracy (mean test metrics): {final_accuracy * 100:.2f}%")
 
     retrieval_demo(model, val_records, tokenizer, DEFAULT_CLASS_MAP, device, demo_samples=args.demo_samples)
     print("Done.")

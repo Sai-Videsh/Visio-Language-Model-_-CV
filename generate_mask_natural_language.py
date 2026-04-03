@@ -252,6 +252,7 @@ def build_sentences(objects: List[Tuple[str, float]]) -> List[str]:
 
 def build_binary_sentences(metrics: Dict[str, float]) -> List[str]:
     fg_ratio = metrics["foreground_ratio"]
+    bg_ratio = 1.0 - fg_ratio
     top_ratio = metrics["top_ratio"]
     mid_ratio = metrics["mid_ratio"]
     bottom_ratio = metrics["bottom_ratio"]
@@ -260,6 +261,7 @@ def build_binary_sentences(metrics: Dict[str, float]) -> List[str]:
     bottom_width = metrics["bottom_width"]
     mid_width = metrics["mid_width"]
 
+    # ROAD EXTENT (foreground)
     if fg_ratio < 0.05:
         extent_phrase = "very limited drivable area"
     elif fg_ratio < 0.15:
@@ -269,6 +271,17 @@ def build_binary_sentences(metrics: Dict[str, float]) -> List[str]:
     else:
         extent_phrase = "a broad drivable region"
 
+    # NON-ROAD EXTENT (background)
+    if bg_ratio > 0.85:
+        bg_phrase = "heavily congested with non-road elements"
+    elif bg_ratio > 0.65:
+        bg_phrase = "dominated by sky, buildings, and structures"
+    elif bg_ratio > 0.45:
+        bg_phrase = "balanced between road and non-road regions"
+    else:
+        bg_phrase = "sparse with minimal occlusion from above"
+
+    # LATERAL POSITIONING
     if center_x < 0.42:
         lateral_phrase = "leans toward the left side"
     elif center_x > 0.58:
@@ -276,6 +289,7 @@ def build_binary_sentences(metrics: Dict[str, float]) -> List[str]:
     else:
         lateral_phrase = "stays near the center"
 
+    # DEPTH STRUCTURE
     if bottom_ratio > mid_ratio > top_ratio:
         depth_phrase = "expands in the foreground and tapers into the distance"
     elif top_ratio > 0.05:
@@ -283,6 +297,7 @@ def build_binary_sentences(metrics: Dict[str, float]) -> List[str]:
     else:
         depth_phrase = "is concentrated near the lower field of view"
 
+    # CONTINUITY
     if row_continuity > 0.85:
         continuity_phrase = "continuous along most image rows"
     elif row_continuity > 0.55:
@@ -290,6 +305,7 @@ def build_binary_sentences(metrics: Dict[str, float]) -> List[str]:
     else:
         continuity_phrase = "fragmented across limited vertical bands"
 
+    # WIDTH DISTRIBUTION
     if bottom_width > max(mid_width + 0.05, 0.2):
         width_phrase = "wider near the bottom than in the middle"
     elif mid_width > max(bottom_width + 0.05, 0.2):
@@ -297,10 +313,11 @@ def build_binary_sentences(metrics: Dict[str, float]) -> List[str]:
     else:
         width_phrase = "with similar spread across lower and middle bands"
 
-    s1 = f"A road mask with {extent_phrase}."
+    # COMPOSITE SENTENCES (ROAD + NON-ROAD)
+    s1 = f"A binary street mask with {extent_phrase}. Non-road regions are {bg_phrase}."
     s2 = f"The drivable segment {lateral_phrase} and {depth_phrase}."
-    s3 = f"Road coverage is {continuity_phrase}, {width_phrase}."
-    s4 = "This segmentation suggests an urban driving scene with stable lane-like structure."
+    s3 = f"Road coverage is {continuity_phrase}, {width_phrase}. Background comprises {'{:.0f}%'.format(bg_ratio*100)} non-drivable area."
+    s4 = f"This scene represents an urban context where {'{:.0f}%'.format(fg_ratio*100)} is navigable road amid {'{:.0f}%'.format(bg_ratio*100)} of structural obstruction."
     return [s1, s2, s3, s4][: max(1, CAPTIONS_PER_MASK)]
 
 
@@ -312,7 +329,12 @@ def build_keywords(objects: List[Tuple[str, float]], max_keywords: int = 8) -> L
 
 
 def build_binary_keywords(metrics: Dict[str, float]) -> List[str]:
-    keys = ["road", "drivable-area", "segmentation"]
+    fg_ratio = metrics["foreground_ratio"]
+    bg_ratio = 1.0 - fg_ratio
+    
+    keys = ["road", "drivable-area", "segmentation", "binary-mask"]
+    
+    # Lateral bias
     if metrics["center_x"] < 0.42:
         keys.append("left-biased")
     elif metrics["center_x"] > 0.58:
@@ -320,17 +342,28 @@ def build_binary_keywords(metrics: Dict[str, float]) -> List[str]:
     else:
         keys.append("centered")
 
+    # Continuity
     if metrics["row_continuity"] > 0.8:
         keys.append("continuous")
     else:
         keys.append("fragmented")
 
-    if metrics["foreground_ratio"] > 0.3:
+    # Road extent
+    if fg_ratio > 0.3:
         keys.append("wide-road")
-    elif metrics["foreground_ratio"] < 0.12:
+    elif fg_ratio < 0.12:
         keys.append("narrow-road")
     else:
         keys.append("medium-road")
+    
+    # Non-road (background) extent
+    if bg_ratio > 0.68:
+        keys.append("congested-scene")
+    elif bg_ratio > 0.45:
+        keys.append("balanced-composition")
+    else:
+        keys.append("open-scene")
+    
     return keys
 
 
