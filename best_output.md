@@ -214,25 +214,27 @@ Saved demo directory: dataset\binary_seg_demos
 
 for hyubrid approach, the output:
 
-Epoch 1/5 - loss: 0.8991
-Epoch 2/5 - loss: 0.6497
-Epoch 3/5 - loss: 0.5552
-Epoch 4/5 - loss: 0.4705
-Epoch 5/5 - loss: 0.4285
+Epoch 1/5 - loss: 0.9225
+Epoch 2/5 - loss: 0.6386
+Epoch 3/5 - loss: 0.5447
+Epoch 4/5 - loss: 0.4584
+Epoch 5/5 - loss: 0.4236
 
 Final validation retrieval accuracy
-Image->Text Top-1: 26.00%
-Image->Text Top-5: 60.00%
-Text->Image Top-1: 32.00%
-
-Final test retrieval accuracy
 Image->Text Top-1: 30.00%
 Image->Text Top-5: 64.00%
-Text->Image Top-1: 20.00%
+Text->Image Top-1: 34.00%
 
-Total model accuracy (mean retrieval on test): 88.00%
+Final test retrieval accuracy
+Image->Text Top-1: 34.00%
+Image->Text Top-5: 72.00%
+Text->Image Top-1: 22.00%
+
+Total model accuracy (mean retrieval on test): 92.67%
 Saved plot: dataset\hybrid_training_loss_curve.png
 Saved plot: dataset\hybrid_retrieval_metrics_val_test.png
+
+
 
 Random hybrid demos
 Demo 01 | Image_1044.png
