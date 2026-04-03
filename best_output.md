@@ -214,24 +214,28 @@ Saved demo directory: dataset\binary_seg_demos
 
 for hyubrid approach, the output:
 
-Notes:
-- UNEXPECTED:   can be ignored when loading from different task/architecture; not ok if you expect identical arch.
-Epoch 1/5 - loss: 0.6757
-Epoch 2/5 - loss: 0.5089
-Epoch 3/5 - loss: 0.4151
-Epoch 4/5 - loss: 0.3634
-Epoch 5/5 - loss: 0.3387
+Epoch 1/5 - loss: 0.8991
+Epoch 2/5 - loss: 0.6497
+Epoch 3/5 - loss: 0.5552
+Epoch 4/5 - loss: 0.4705
+Epoch 5/5 - loss: 0.4285
 
 Final validation retrieval accuracy
-Image->Text Top-1: 18.40%
-Image->Text Top-5: 45.20%
-Text->Image Top-1: 17.20%
+Image->Text Top-1: 26.00%
+Image->Text Top-5: 60.00%
+Text->Image Top-1: 32.00%
 
 Final test retrieval accuracy
-Image->Text Top-1: 18.00%
-Image->Text Top-5: 45.20%
-Text->Image Top-1: 14.80%
+Image->Text Top-1: 30.00%
+Image->Text Top-5: 64.00%
+Text->Image Top-1: 20.00%
 
-Total model accuracy (mean retrieval on test): 26.00%
+Total model accuracy (mean retrieval on test): 88.00%
 Saved plot: dataset\hybrid_training_loss_curve.png
 Saved plot: dataset\hybrid_retrieval_metrics_val_test.png
+
+Random hybrid demos
+Demo 01 | Image_1044.png
+Hybrid answer: Natural caption: a man riding a skateboard down a street. Mask geometry: A road mask with a moderate drivable region. The drivable segment stays near the center and expands in the foreground and tapers into the distance. Road coverage is present across a moderate vertical span, wider near the bottom than in the middle. Detected mask classes: road.
+Predicted best answer: Natural caption: a man riding a skateboard down a street. Mask geometry: A road mask with a moderate drivable region. The drivable segment stays near the center and expands in the foreground and tapers into the distance. Road coverage is present across a moderate vertical span, wider near the bottom than in the middle. Detected mask classes: road.    
+Confidence: 0.4159

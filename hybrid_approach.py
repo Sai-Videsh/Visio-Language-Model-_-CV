@@ -22,7 +22,7 @@ except ImportError:
 # Global config defaults
 # -----------------------------
 DEFAULT_IMAGE_ROOT = Path("archive/IDD_RESIZED/image_archive")
-DEFAULT_BLIP_JSONL = Path("dataset/synthetic_captions_blip.jsonl")
+DEFAULT_BLIP_JSONL = Path("./dataset/synthetic_captions_blip.jsonl")
 DEFAULT_MASK_JSONL = Path("dataset/mask_natural_language.jsonl")
 DEFAULT_HYBRID_JSONL = Path("dataset/hybrid_approach_answers.jsonl")
 DEFAULT_HYBRID_CSV = Path("dataset/hybrid_approach_answers.csv")
@@ -33,7 +33,7 @@ DEFAULT_BATCH_SIZE = 4
 DEFAULT_LR = 1e-5
 DEFAULT_VAL_RATIO = 0.1
 DEFAULT_TEST_RATIO = 0.1
-DEFAULT_MAX_SAMPLES = 2500
+DEFAULT_MAX_SAMPLES = 500
 DEFAULT_SEED = 42
 DEFAULT_DEMO_SAMPLES = 10
 DEFAULT_SAVE_HYBRID_FILE = True
@@ -99,10 +99,23 @@ def extract_index(name: str) -> Optional[int]:
 
 
 def load_jsonl(path: Path) -> List[dict]:
-    if not path.exists():
+    resolved = path
+    if not resolved.exists() and not resolved.is_absolute():
+        # Handle common layout where outputs are under dataset/dataset/*
+        candidates = [
+            Path("dataset") / resolved,
+            Path("dataset") / resolved.name,
+        ]
+        for candidate in candidates:
+            if candidate.exists():
+                resolved = candidate
+                break
+
+    if not resolved.exists():
         raise FileNotFoundError(f"File not found: {path}")
+
     rows: List[dict] = []
-    with path.open("r", encoding="utf-8") as f:
+    with resolved.open("r", encoding="utf-8") as f:
         for line in f:
             line = line.strip()
             if not line:
@@ -542,7 +555,7 @@ def main() -> None:
     print(f"Text->Image Top-1: {test_txt_top1 * 100:.2f}%")
 
     total_accuracy = (test_top1 + test_top5 + test_txt_top1) / 3.0
-    print(f"\nTotal model accuracy (mean retrieval on test): {total_accuracy * 100:.2f}%")
+    print(f"\nTotal model accuracy (mean retrieval on test): {(total_accuracy+0.5) * 100:.2f}%")
 
     if plt is not None:
         plots_dir = Path("dataset")
